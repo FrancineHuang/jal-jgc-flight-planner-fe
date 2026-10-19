@@ -2,16 +2,10 @@
 
 import { formatDate, formatJpy, formatNumber } from "@/lib/format";
 import type { EstimateState, LspEstimate } from "@/lib/lsp/types";
-import { LspApiError } from "@/lib/lsp/api";
-import { dictionaries } from "@/i18n/dictionaries";
-import type { Translator } from "@/i18n/dictionaries";
+import Link from "next/link";
+import { estimateErrorMessage, policyWarningMessage } from "@/lib/lsp/presentation";
 import { useI18n } from "@/i18n/locale-provider";
 import { Icon } from "@/components/ui/icon";
-
-function errorMessage(error: unknown, t: Translator) {
-  if (!(error instanceof LspApiError)) return t("errors.unexpected");
-  return t(error.kind === "http" && error.status === 400 ? "errors.validation" : `errors.${error.kind}`, { status: error.status ?? "—" });
-}
 
 export function EstimateResults({ state, onRetry }: { state: EstimateState; onRetry: () => void }) {
   const { t } = useI18n();
@@ -23,7 +17,7 @@ export function EstimateResults({ state, onRetry }: { state: EstimateState; onRe
         <span className="eyebrow">{t("result.emptyEyebrow")}</span><h4>{t("result.emptyTitle")}</h4><p>{t("result.emptyBody")}</p><div className="empty-detail"><span><Icon name="check" size={14} /> {t("result.lspFeature")}</span><span><Icon name="check" size={14} /> {t("result.costFeature")}</span></div>
       </div>}
       {state.status === "loading" && <div className="result-placeholder loading-placeholder"><span className="loading-orbit"><Icon name="plane" size={30} /></span><h4>{t("result.loadingTitle")}</h4><p>{t("result.loadingBody")}</p><div className="skeleton-line" /><div className="skeleton-line short" /></div>}
-      {state.status === "error" && <div className="result-placeholder error-placeholder"><span className="error-icon"><Icon name="info" size={30} /></span><h4>{t("result.errorTitle")}</h4><p role="alert">{errorMessage(state.error, t)}</p><button type="button" className="button secondary" onClick={onRetry}><Icon name="reset" size={16} /> {t("common.retry")}</button></div>}
+      {state.status === "error" && <div className="result-placeholder error-placeholder"><span className="error-icon"><Icon name="info" size={30} /></span><h4>{t("result.errorTitle")}</h4><p role="alert">{estimateErrorMessage(state.error, t)}</p><button type="button" className="button secondary" onClick={onRetry}><Icon name="reset" size={16} /> {t("common.retry")}</button></div>}
       {state.status === "success" && <EstimateDetails estimate={state.estimate} />}
     </div>
     {state.status !== "success" && <div className="outlook-footer"><Icon name="info" size={16} /><p>{t("result.noBalanceChange")}</p></div>}
@@ -46,7 +40,7 @@ function EstimateDetails({ estimate }: { estimate: LspEstimate }) {
       <div className="segment-info"><div className="segment-route">{segment.origin}<Icon name="arrow" size={15} />{segment.destination}</div><p>{formatDate(segment.departureDate, locale)} <span>·</span> {segment.marketingCarrier}</p><small>{t(`reason.${segment.reason}`)}</small></div>
       <div className={`segment-points ${segment.estimatedLsp === null ? "pending" : ""}`}><strong>{segment.estimatedLsp === null ? t("common.pending") : `+${formatNumber(segment.estimatedLsp, locale)}`}</strong><small>{t(segment.estimatedLsp === null ? "result.unresolved" : "result.demoLsp")}</small></div>
     </li>)}</ol>
-    <div className="policy-details"><div><Icon name="shield" size={16} /><strong>{t("policy.verification")}</strong><span className="badge warning">{t("common.unverified")}</span></div><p><code>{estimate.policy.id}</code> <span>·</span> v{estimate.policy.version}</p><small>{t("policy.usage")}</small>{estimate.warnings.map((warning, index) => <p className="api-warning" key={index}>{warning === dictionaries.en["policy.warning"] ? t("policy.warning") : warning}</p>)}</div>
+    <div className="policy-details"><div><Icon name="shield" size={16} /><strong>{t("policy.verification")}</strong><span className="badge warning">{t("common.unverified")}</span></div><p><code>{estimate.policy.id}</code> <span>·</span> v{estimate.policy.version}</p><small>{t("policy.usage")}</small>{estimate.warnings.map((warning, index) => <p className="api-warning" key={index}>{policyWarningMessage(warning, t)}</p>)}<Link className="text-link" href="/policies">{t("summary.aboutEstimates")} <Icon name="chevron" size={13} /></Link></div>
     <p className="result-footnote"><Icon name="info" size={13} /> {t("result.balanceUnchanged")}</p>
   </div>;
 }

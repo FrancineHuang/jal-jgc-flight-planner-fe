@@ -41,6 +41,19 @@ Current points and targets use editable demo values that reset on refresh. The l
 
 The prototype does not connect to JAL accounts, use a database, retrieve live airfare or verify eligibility automatically. It does not save itinerary history or search for optimal routes.
 
+### Pages and navigation
+
+| Route | Purpose |
+| --- | --- |
+| `/` | Redirects to `/dashboard` |
+| `/dashboard` | LSP balance, personal target, progress and the latest completed estimate; links to the simulator |
+| `/simulator` | Flight inputs, validation, API estimates, segment results and error handling |
+| `/policies` | Current backend policy, version, methodology, scope and limitations |
+
+All three pages share a sidebar, active navigation, locale provider and in-memory planning state. Client-side navigation preserves the selected language, manual LSP settings, itinerary draft and estimate results. Refreshing clears planning state while retaining the browser's language preference.
+
+The policies page reuses policy metadata from a successful estimate. On a direct visit without cached metadata, it calls the existing estimate API with the configured demo itinerary to read the policy. This request does not populate the user's latest estimate or change their balance. If the backend is unavailable, the page shows an error and retry action rather than a fabricated policy.
+
 ### Demo itinerary
 
 Click 「羽田〜那覇のデモを試す」, then 「デモLSPを試算する」 in the default Japanese interface to request this example. In English, the corresponding buttons are **Try HND–OKA demo** and **Estimate demo LSP**.
@@ -210,9 +223,13 @@ The backend must still run separately and allow the production frontend's origin
 
 ```text
 src/
-├── app/                       Page entry, metadata and global styles
+├── app/                       Root layout, / redirect, metadata and global styles
+│   └── (planner)/             Shared layout and dashboard/simulator/policies routes
 ├── components/
 │   ├── dashboard/             Dashboard, point settings and language menu
+│   ├── layout/                Reusable sidebar, active navigation and page shell
+│   ├── planner/               Shared session state and simulation request lifecycle
+│   ├── policies/              Current backend policy and calculation limitations
 │   ├── simulator/             Flight form, request states and estimate results
 │   └── ui/                    Shared icons
 ├── config/demo.ts             Demo balance, target and itinerary
@@ -224,7 +241,7 @@ src/
 └── lib/
     ├── lsp/                   API types, requests and input validation
     └── format.ts              Number, JPY and date formatting
-tests/                         Unit tests and live API integration script
+tests/                         Unit tests, route rendering tests and live API checks
 ```
 
 Read [`AGENTS.md`](AGENTS.md) before development and preserve its generated Next.js instructions. For the API contract and policy configuration, see the [backend README](https://github.com/FrancineHuang/jal-jgc-flight-planner-be#readme).

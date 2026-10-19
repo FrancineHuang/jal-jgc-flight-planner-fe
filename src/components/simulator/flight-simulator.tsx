@@ -1,52 +1,22 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { DEMO_ITINERARY, INITIAL_ITINERARY } from "@/config/demo";
-import { requestLspEstimate } from "@/lib/lsp/api";
-import { toEstimateRequest, validateItinerary } from "@/lib/lsp/validation";
-import type { EstimateState, FieldErrors, SimulatorInput } from "@/lib/lsp/types";
+import { useRef } from "react";
+import type { SimulatorInput } from "@/lib/lsp/types";
 import { Icon } from "@/components/ui/icon";
 import { EstimateResults } from "./estimate-results";
 import { useI18n } from "@/i18n/locale-provider";
+import { usePlanner } from "@/components/planner/planner-provider";
 
 export function FlightSimulator() {
   const { t } = useI18n();
-  const [input, setInput] = useState<SimulatorInput>(INITIAL_ITINERARY);
-  const [errors, setErrors] = useState<FieldErrors>({});
-  const [state, setState] = useState<EstimateState>({ status: "idle" });
-  const request = useRef<AbortController | null>(null);
+  const { simulation } = usePlanner();
+  const { input, errors, state, update, loadDemo, swapAirports, estimate } = simulation;
   const form = useRef<HTMLFormElement>(null);
   const loading = state.status === "loading";
-  useEffect(() => () => request.current?.abort(), []);
 
-  function update<K extends keyof SimulatorInput>(key: K, value: SimulatorInput[K]) {
-    setInput((previous) => ({ ...previous, [key]: value }));
-    setErrors({});
-    setState({ status: "idle" });
-  }
-  function loadDemo() {
-    setInput({ ...DEMO_ITINERARY });
-    setErrors({});
-    setState({ status: "idle" });
-  }
-  async function estimate() {
-    const nextErrors = validateItinerary(input);
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length) {
-      setState({ status: "idle" });
-      // Wait for inline errors and aria-invalid to render before moving focus.
+  async function submitEstimate() {
+    if (!await estimate()) {
       requestAnimationFrame(() => form.current?.querySelector<HTMLInputElement>("[aria-invalid=true]")?.focus());
-      return;
-    }
-    request.current?.abort();
-    const controller = new AbortController();
-    request.current = controller;
-    setState({ status: "loading" });
-    try {
-      const result = await requestLspEstimate(toEstimateRequest(input), controller.signal);
-      if (!controller.signal.aborted) setState({ status: "success", estimate: result });
-    } catch (error) {
-      if (!controller.signal.aborted) setState({ status: "error", error });
     }
   }
   const errorProps = (field: keyof SimulatorInput) => ({ "aria-invalid": !!errors[field], "aria-describedby": errors[field] ? `${field}-error` : undefined });
@@ -56,18 +26,18 @@ export function FlightSimulator() {
   };
 
   return <section id="simulator" aria-labelledby="simulator-title" className="simulator-section">
-    <div className="section-heading"><div><p className="eyebrow">{t("simulator.eyebrow")}</p><h2 id="simulator-title">{t("simulator.title")}</h2><p>{t("simulator.description")}</p></div><span className="section-kicker"><Icon name="plane" size={15} /> {t("simulator.kicker")}</span></div>
+    <div className="section-heading"><div><p className="eyebrow">{t("simulator.eyebrow")}</p><h1 id="simulator-title">{t("simulator.title")}</h1><p>{t("simulator.description")}</p></div><span className="section-kicker"><Icon name="plane" size={15} /> {t("simulator.kicker")}</span></div>
     <div className="simulator-grid">
       <article className="panel simulator-panel">
         <div className="panel-heading"><div className="panel-title"><span className="title-icon"><Icon name="plane" size={18} /></span><h3>{t("form.itinerary")}</h3></div><button className="text-link" type="button" onClick={loadDemo} disabled={loading}><Icon name="spark" size={14} /> {t("form.demo")}</button></div>
-        <form ref={form} noValidate onSubmit={(event) => { event.preventDefault(); if (!loading) void estimate(); }}>
+        <form ref={form} noValidate onSubmit={(event) => { event.preventDefault(); if (!loading) void submitEstimate(); }}>
           <fieldset disabled={loading} className="simulator-fields">
             <legend className="sr-only">{t("form.legend")}</legend>
             <div className="trip-toggle" role="group" aria-label={t("form.tripType")}><button type="button" aria-pressed={input.tripType === "round-trip"} className={input.tripType === "round-trip" ? "active" : ""} onClick={() => update("tripType", "round-trip")}>{t("form.roundTrip")}</button><button type="button" aria-pressed={input.tripType === "one-way"} className={input.tripType === "one-way" ? "active" : ""} onClick={() => update("tripType", "one-way")}>{t("form.oneWay")}</button></div>
 
             <div className="route-fields">
               <label className="field airport-field"><span>{t("form.from")}</span><input name="origin" aria-label={t("form.originLabel")} type="text" maxLength={3} value={input.origin} onChange={(event) => update("origin", event.target.value.toUpperCase())} placeholder="HND" autoComplete="off" required {...errorProps("origin")} /><small>{t("form.originHint")}</small>{fieldError("origin")}</label>
-              <button className="swap-button" type="button" aria-label={t("form.swap")} onClick={() => { setInput((previous) => ({ ...previous, origin: previous.destination, destination: previous.origin })); setErrors({}); setState({ status: "idle" }); }}><Icon name="swap" size={17} /></button>
+              <button className="swap-button" type="button" aria-label={t("form.swap")} onClick={swapAirports}><Icon name="swap" size={17} /></button>
               <label className="field airport-field"><span>{t("form.to")}</span><input name="destination" aria-label={t("form.destinationLabel")} type="text" maxLength={3} value={input.destination} onChange={(event) => update("destination", event.target.value.toUpperCase())} placeholder="OKA" autoComplete="off" required {...errorProps("destination")} /><small>{t("form.destinationHint")}</small>{fieldError("destination")}</label>
             </div>
 
