@@ -1,91 +1,119 @@
-# JGC Flight Planner · Backend
+# JGC Flight Planner
 
-面向日本航空（JAL）JGC「修行僧」的航班规划工具后端，用于估算行程的 Life Status Points（LSP）以及每点获取成本，让不同航线、航段组合和机票预算更容易比较。
+面向日航 JGC「修行僧」的飞行规划工具。
+
+把当前积分、目标进度、计划行程与每点成本放在同一个画面，让下一次出发更有方向。
+
+本仓库为项目的 **前端应用**，采用 Next.js 构建。界面默认日语，支持英语与简体中文。
 
 ## 项目背景
 
-对以加入 JAL Global Club（JGC）为目标、或希望持续积累 LSP 的飞行爱好者来说，规划一次「修行」往往需要同时考虑机票价格、飞行航段和积分获取效率。
+这个项目为以 JAL Global Club（JGC）为目标、喜欢研究航线与积分效率的「修行僧」而设计。这里的「修行」，指的是围绕常旅客目标规划飞行行程：除了想去哪里，也会关心这次飞行距离目标还有多远，以及需要投入多少预算。
 
-JAL 的 Life Status Program 根据符合条件的搭乘及生活服务使用情况累计 Life Status Points；达到相应积分并满足其他条件后，可以获得对应权益或 JGC 入会资格。制度背景可参考 [JAL 官方 Life Status Program 介绍](https://www.jal.co.jp/jp/ja/jmb/jmbapp/tips/23/index.html)。
+JAL 的 [Life Status プログラム](https://www.jal.co.jp/jp/ja/jmb/lsp/) 是根据搭乘航班和使用相关生活服务累积 Life Status Points（LSP）的终身实绩计划。本项目聚焦其中的**飞行规划场景**，希望帮助使用者回答几个具体问题：
 
-这个项目希望回答一个具体的问题：**给定一组航段和总票价，这次行程预计能获得多少 LSP，每个 LSP 需要花多少钱？** 后端负责输入校验、政策计算及结果明细，为前端提供统一的 API。
+- 我目前有多少 LSP，距离自己设定的目标还差多少？
+- 计划中的单程或往返行程，预计可以获得多少 LSP？
+- 这张机票的每点成本是多少，是否适合自己的预算？
+- 估算采用了哪个版本的规则，哪些区间仍需要确认资格？
 
-当前处于原型阶段，已经实现第一个 LSP 估算接口。**每个符合条件的国内航段计 5 LSP 仅为未经核实的演示数据，不代表已经实现或验证 JAL 官方规则。** 航段资格由调用方手动提供，项目不验证实际入账资格，与 JAL 无官方关联。
+项目从手动输入和可追溯的试算开始，逐步建立适合「JGC 修行」的规划体验。它也是一个使用 AI 辅助开发的全栈工程实践项目。
+
+> 当前版本为原型，所有航班积分计算均为**未经验证的演示估算**，不代表 JAL 官方积分权益。阅读官方资料不意味着项目中的计算规则已经完成核实。LSP 与年度 FLY ON Points 是不同概念，不能混用。本项目为独立开发，与日本航空无隶属关系。
+
+官方背景资料：[JAL Life Status プログラム](https://www.jal.co.jp/jp/ja/jmb/lsp/) · [Star 等级说明](https://www.jal.co.jp/jp/ja/jmb/lsp/jgc/)。实际积分、资格和权益请以 JAL 最新公布的条件为准。
 
 ## 当前功能
 
-- 接收日元总票价和航段信息，估算总 LSP 与每点成本（JPY/LSP）。
-- 支持 `eligible`、`ineligible`、`unknown` 三种手动资格状态。
-- 返回逐航段计算明细、政策标识、版本和核实状态。
-- 使用独立、可配置的政策引擎，便于后续维护不同版本的规则。
-- 提供健康检查、请求校验和 JSON 错误响应。
+| 功能 | 说明 |
+| --- | --- |
+| LSP Dashboard | 手动设置当前 LSP 和个人目标，查看剩余积分与完成进度 |
+| 航班模拟器 | 支持单程、往返，输入机场、日期、机票总价和营销承运人 |
+| 逐航段资格 | 手动指定符合资格、不符合资格或未知，不根据机场推断资格 |
+| 积分与成本预览 | 展示后端返回的预计 LSP、日元／LSP 和逐航段明细 |
+| 政策透明度 | 展示政策标识、版本、验证状态及演示警告 |
+| 多语言 | 日语、英语、简体中文；通过侧边栏菜单切换并记住语言选择 |
+| 响应式界面 | 适配桌面和手机，提供加载、空结果、校验和错误重试状态 |
 
-当前通过手动输入票价和航段完成估算，尚未接入数据库、用户认证或外部票价服务。
+当前积分和目标使用演示值，可在画面中修改；刷新后会重置。语言偏好保存在当前浏览器中，切换语言不会清空已输入的行程或估算结果。
+
+目前未接入 JAL 账户、数据库、真实票价查询或自动资格验证，也不支持保存历史行程或自动搜索最优航线。
+
+### 演示行程
+
+点击「羽田〜那覇のデモを試す」，再点击「デモLSPを試算する」，即可请求以下示例：
+
+| 项目 | 演示值 |
+| --- | --- |
+| 行程 | HND → OKA → HND（羽田—那霸往返） |
+| 日期 | 2026-11-01 至 2026-11-03 |
+| 营销承运人 | JL |
+| 机票总价 | ¥35,000 |
+| 资格 | 两个航段均手动标记为符合资格 |
+| 预计积分 | 10 demo LSP |
+| 每点成本 | ¥3,500／LSP |
+
+以上结果来自后端当前的**未验证演示政策**，不是官方计算示例。默认余额、个人目标和示例行程集中配置在 [`src/config/demo.ts`](src/config/demo.ts)。界面中的目标值不构成已核实的 JGC 资格判断。
+
+资格未知或航线超出政策范围时，总计保持待确认，同时展示已知的航段结果；积分为 0 时，每点成本显示为不可用。
 
 ## 技术栈
 
-| 技术 | 用途 |
+| 层面 | 技术 |
 | --- | --- |
-| Node.js + npm | 后端运行环境及依赖管理 |
-| TypeScript | 严格类型检查，使用 ESM / NodeNext 模块配置 |
-| Express 5 | HTTP 服务与路由 |
-| Zod | 请求参数及政策配置校验 |
-| cors | 前端跨域配置 |
-| dotenv | 从 `.env` 加载本地环境变量 |
-| tsx | 开发时运行 TypeScript，监听文件变化 |
-| Vitest + Supertest | 政策引擎单元测试及 HTTP API 测试 |
+| 前端框架 | Next.js 16 · App Router |
+| UI | React 19 · TypeScript |
+| 样式 | Tailwind CSS 4 · CSS · 海军蓝、白色与暗红色强调色 |
+| 多语言 | React Context · JSON 语言包 · 浏览器语言偏好存储 |
+| API 通信 | Fetch API · 响应格式校验 · 超时与取消处理 |
+| 代码检查 | ESLint 9 · TypeScript |
+| 前端测试 | Node.js 内置测试运行器 · TypeScript 编译器 |
+| 独立后端 | Express 5 · TypeScript · Zod |
 
-具体依赖版本以 `package.json` 和 `package-lock.json` 为准。
+前后端分别维护在两个仓库中：
+
+- 前端：[jal-jgc-flight-planner-fe](https://github.com/FrancineHuang/jal-jgc-flight-planner-fe)
+- 后端：[jal-jgc-flight-planner-be](https://github.com/FrancineHuang/jal-jgc-flight-planner-be)
+
+前端负责输入、校验、交互和结果展示，调用后端 `POST /api/v1/lsp/estimates`。所有航班 LSP 计算逻辑由后端负责，前端不维护计算公式。
 
 ## 本地环境搭建
 
-### 1. 准备工具
+### 1. 准备环境与代码
 
-安装 Node.js（可使用 22.x 或 24.x）及其附带的 npm。手动调用 API 时还可以使用 curl。
+以下步骤以 **Node.js 24、npm 和 Git** 为开发环境。使用前请确认命令可用：
 
 ```sh
 node --version
 npm --version
+git --version
 ```
 
-本地运行无需数据库、JAL 账号或第三方 API Key。
+首次搭建时，将两个仓库克隆到同一个工作目录：
 
-### 2. 安装依赖
+```sh
+mkdir jal-jgc-flight-planner
+cd jal-jgc-flight-planner
 
-拉取项目后，在后端目录执行：
+git clone https://github.com/FrancineHuang/jal-jgc-flight-planner-fe.git
+git clone https://github.com/FrancineHuang/jal-jgc-flight-planner-be.git
+```
+
+已有代码时，可直接使用现有目录，跳过克隆步骤。下面的两个终端都从这个工作目录开始。
+
+### 2. 启动后端
+
+在第一个终端中运行：
 
 ```sh
 cd jal-jgc-flight-planner-be
 npm ci
-```
-
-如果终端已经位于后端目录，直接执行 `npm ci` 即可。该命令会按 lockfile 安装依赖。
-
-### 3. 配置环境变量（可选）
-
-在后端根目录新建 `.env` 文件：
-
-```dotenv
-PORT=4000
-FRONTEND_ORIGIN=http://localhost:3000
-```
-
-| 变量 | 默认值 | 说明 |
-| --- | --- | --- |
-| `PORT` | `4000` | 后端监听端口 |
-| `FRONTEND_ORIGIN` | `http://localhost:3000` | CORS 允许的前端来源，包含协议及端口 |
-
-不创建 `.env` 也可以使用默认值启动。`.env` 已加入 `.gitignore`。
-
-### 4. 启动开发服务
-
-```sh
 npm run dev
 ```
 
-默认服务地址为 `http://localhost:4000`。开发模式会监听源文件变化并自动重启。
+后端默认运行在 `http://localhost:4000`，默认允许 `http://localhost:3000` 的前端请求。使用默认地址时，无需额外配置后端环境变量。
 
-在另一个终端确认服务正常：
+可以在另一个终端检查服务是否正常：
 
 ```sh
 curl http://localhost:4000/api/health
@@ -97,160 +125,104 @@ curl http://localhost:4000/api/health
 { "status": "ok", "service": "JGC Flight Planner API" }
 ```
 
-### 5. 构建和运行编译产物
+### 3. 配置并启动前端
+
+在第二个终端中运行。`cp` 用于首次创建配置文件；如果已有 `.env.local`，跳过该命令并保留原配置：
 
 ```sh
+cd jal-jgc-flight-planner-fe
+npm ci
+cp .env.example .env.local
+```
+
+核对 `.env.local` 中的 API 地址。默认配置为：
+
+```dotenv
+NEXT_PUBLIC_API_BASE_URL=http://localhost:4000
+```
+
+然后启动前端：
+
+```sh
+npm run dev
+```
+
+打开 [http://localhost:3000](http://localhost:3000)，即可看到默认日语 Dashboard。侧边栏的「表示言語」菜单可切换为 English 或简体中文。
+
+仅启动前端也可以查看页面；提交航班估算需要后端同时运行。
+
+### 环境变量
+
+| 应用 | 变量 | 默认值／示例 | 用途 |
+| --- | --- | --- | --- |
+| 前端 | `NEXT_PUBLIC_API_BASE_URL` | `http://localhost:4000` | 后端服务地址，不包含 `/api/v1` |
+| 后端 | `PORT` | `4000` | 后端监听端口 |
+| 后端 | `FRONTEND_ORIGIN` | `http://localhost:3000` | CORS 允许的前端来源 |
+
+`NEXT_PUBLIC_API_BASE_URL` 会进入浏览器代码，不应存放密钥。修改后，需要重启前端开发服务；生产环境需要重新构建。提交环境配置时使用 `.env.example`，`.env` 和 `.env.local` 已被 Git 忽略。
+
+如果前端使用其他端口，需要让后端的 `FRONTEND_ORIGIN` 与实际访问地址一致。例如，前端运行在 `http://localhost:3001` 时，重新启动后端：
+
+```sh
+FRONTEND_ORIGIN=http://localhost:3001 npm run dev
+```
+
+上面的命令在后端目录中运行，适用于 macOS、Linux 或 Git Bash。`localhost` 和 `127.0.0.1` 也属于不同来源，配置时应保持一致。
+
+项目通过 `next/font/google` 加载 Geist 字体，首次构建需要能够访问 Google Fonts。
+
+## 开发检查与构建
+
+在前端目录运行：
+
+```sh
+npm run lint
+npm run typecheck
+npm test
 npm run build
+```
+
+前端测试覆盖请求格式、输入边界、未知值与零值、API 错误、多语言文案完整性、日期格式和语言偏好存储。
+
+后端运行时，还可以执行真实 API 联调：
+
+```sh
+npm run test:integration
+```
+
+联调脚本默认连接 `http://localhost:4000`；如需其他地址，通过进程环境变量指定：
+
+```sh
+NEXT_PUBLIC_API_BASE_URL=http://localhost:4001 npm run test:integration
+```
+
+生产模式下，在构建成功后运行：
+
+```sh
 npm start
 ```
 
-构建产物位于 `dist/`。先停止开发服务再运行 `npm start`，或配置不同的 `PORT`，以免端口冲突。
-
-## 常用命令
-
-| 命令 | 作用 |
-| --- | --- |
-| `npm ci` | 按 lockfile 安装依赖 |
-| `npm run dev` | 启动开发服务，监听文件变化 |
-| `npm run typecheck` | 检查源代码和测试代码的类型 |
-| `npm run build` | 编译源代码到 `dist/` |
-| `npm start` | 运行编译后的服务 |
-| `npm test` | 执行全部 Vitest 测试 |
-
-提交变更前可以运行：
-
-```sh
-npm run typecheck
-npm run build
-npm test
-```
-
-HTTP 测试通过 Supertest 使用本地临时端口，无需提前启动开发服务。
-
-## API 使用
-
-### 健康检查
-
-`GET /api/health`
-
-返回服务状态，示例见上方启动步骤。
-
-### 估算 LSP
-
-`POST /api/v1/lsp/estimates`
-
-请求使用 `Content-Type: application/json`。以下示例为羽田 → 那霸 → 羽田、总票价 ¥35,000、两个手动标记符合条件的航段：
-
-```sh
-curl -i -X POST http://localhost:4000/api/v1/lsp/estimates \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "totalAirfareJpy": 35000,
-    "segments": [
-      { "origin": "HND", "destination": "OKA", "departureDate": "2026-11-01", "marketingCarrier": "JL", "eligibility": "eligible" },
-      { "origin": "OKA", "destination": "HND", "departureDate": "2026-11-03", "marketingCarrier": "JL", "eligibility": "eligible" }
-    ]
-  }'
-```
-
-预期 HTTP 200，结果为 **10 demo LSP、¥3,500/LSP**：
-
-```json
-{
-  "totalAirfareJpy": 35000,
-  "estimatedTotalLsp": 10,
-  "jpyPerLsp": 3500,
-  "breakdown": [
-    {
-      "origin": "HND", "destination": "OKA", "departureDate": "2026-11-01",
-      "marketingCarrier": "JL", "eligibility": "eligible", "segmentIndex": 0,
-      "estimatedLsp": 5, "reason": "eligible_domestic_demo"
-    },
-    {
-      "origin": "OKA", "destination": "HND", "departureDate": "2026-11-03",
-      "marketingCarrier": "JL", "eligibility": "eligible", "segmentIndex": 1,
-      "estimatedLsp": 5, "reason": "eligible_domestic_demo"
-    }
-  ],
-  "policy": {
-    "id": "jgc-domestic-demo",
-    "version": "1.0.0",
-    "verificationStatus": "unverified",
-    "usage": "demonstration_only",
-    "lspPerEligibleDomesticSegment": 5,
-    "domesticAirports": ["HND", "NRT", "OKA", "ITM", "KIX", "CTS", "FUK", "NGO"]
-  },
-  "warnings": [
-    "Unverified demonstration data only. This estimate does not represent verified JAL LSP rules. Eligibility is supplied manually and is not verified."
-  ]
-}
-```
-
-#### 请求字段
-
-| 字段 | 要求 |
-| --- | --- |
-| `totalAirfareJpy` | 日元总票价；非负整数，不超过 `Number.MAX_SAFE_INTEGER` |
-| `segments` | 1–100 个航段，每段必须包含下列五个字段 |
-| `segments[].origin` | 三位大写 IATA 机场代码，例如 `HND` |
-| `segments[].destination` | 三位大写 IATA 机场代码，不能与出发地相同 |
-| `segments[].departureDate` | 有效的 `YYYY-MM-DD` 日历日期 |
-| `segments[].marketingCarrier` | 两位大写字母或数字组成的营销承运人 IATA 代码，例如 `JL` |
-| `segments[].eligibility` | `eligible`、`ineligible` 或 `unknown`，由调用方手动提供 |
-
-请求体上限为 100kb，多余字段会被拒绝。机场及航司代码只校验格式，不连接真实代码库。
-日期和航司会保留在明细中，当前演示政策没有按日期或航司区分的计算规则。
-
-#### 计算行为
-
-| 航段情况 | 航段 LSP | 明细原因 |
-| --- | --- | --- |
-| `eligible`，且两个机场均在政策范围内 | 默认 5 | `eligible_domestic_demo` |
-| `ineligible` | 0 | `ineligible` |
-| `unknown` | `null` | `eligibility_unknown` |
-| `eligible`，但任一机场不在政策范围内 | `null` | `route_outside_policy_scope` |
-
-只要任一航段估算为 `null`，**`estimatedTotalLsp` 和 `jpyPerLsp` 均返回 `null`**，已知航段的结果仍会保留。默认机场列表只覆盖演示范围，范围外的机场不会被直接判定为国际机场或零积分。
-
-全部航段为 `ineligible` 时，总 LSP 为 0，每点成本为 `null`。总票价允许为 0；总 LSP 为正时，每点成本按完整票价除以总 LSP 计算，不作展示舍入。`segmentIndex` 从 0 开始，与请求航段顺序一致。
-
-#### 错误响应
-
-错误使用 JSON 返回，包含 `error.code` 和 `error.message`。
-
-| HTTP 状态 | 错误代码 | 含义 |
-| --- | --- | --- |
-| 400 | `VALIDATION_ERROR` | 请求字段不合法，`error.issues` 提供字段路径和原因 |
-| 400 | `INVALID_JSON` | 请求体不是合法 JSON |
-| 413 | `PAYLOAD_TOO_LARGE` | 请求体超过 100kb |
-| 415 | `UNSUPPORTED_MEDIA_TYPE` | 需要使用 `application/json` |
-| 500 | `INTERNAL_ERROR` | 未预期的服务端错误，不向客户端返回内部细节 |
-
-手动验证时，可以将任一段资格改为 `unknown`、将两段均改为 `ineligible`，或将票价改为负数，分别查看未知估算、零积分和校验失败的响应。
+后端仍需单独运行，并允许生产前端的来源。
 
 ## 目录结构
 
 ```text
 src/
-  index.ts                 # 加载环境变量并启动服务
-  app.ts                   # 创建 Express app，注册路由及错误处理中间件
-  lsp/
-    schema.ts              # 请求校验及请求类型
-    policy.ts              # 演示政策配置、版本及校验
-    engine.ts              # 独立的 LSP 计算函数
-    routes.ts              # LSP API 路由
-tests/
-  fixtures.ts              # 共用的演示请求
-  lsp-engine.test.ts        # 政策引擎测试
-  lsp-api.test.ts           # HTTP API 及健康检查测试
-tsconfig.json              # 源代码编译配置
-tsconfig.test.json         # 包含测试代码的类型检查配置
+├── app/                       页面入口、元数据与全局样式
+├── components/
+│   ├── dashboard/             Dashboard、积分设置与语言菜单
+│   ├── simulator/             航班表单、请求状态与估算结果
+│   └── ui/                    共用图标
+├── config/demo.ts             演示余额、目标和行程
+├── i18n/
+│   ├── messages/              ja.json、en.json、zh.json
+│   ├── dictionaries.ts        文案类型与变量替换
+│   ├── locale-provider.tsx    语言上下文和页面语言同步
+│   └── locale-store.ts        浏览器语言偏好
+└── lib/
+    ├── lsp/                   API 类型、请求与输入校验
+    └── format.ts              数字、日元与日期格式
+tests/                         单元测试和 API 联调脚本
 ```
 
-`app.ts` 不监听端口，测试可以直接创建 app；`index.ts` 负责实际启动服务。
-
-## 政策配置与版本
-
-默认政策定义在 `src/lsp/policy.ts`。使用 `createLspPolicy` 创建政策后，可以通过 `createApp({ policy })` 注入不同的每段积分及机场范围。工厂会校验并冻结配置，计算逻辑位于独立的 `src/lsp/engine.ts`。
-
-修改规则或支持的机场范围时，应更新政策版本；如果创建不同政策，应使用可区分的 ID，使返回结果能够追溯到对应配置。当前所有政策均限定为 `unverified` / `demonstration_only`，更改配置不会使其成为已经核实的官方规则。
+开发前请阅读 [`AGENTS.md`](AGENTS.md)，并保留其中由 Next.js 生成的说明。后端 API 的详细契约与政策配置请参考[后端 README](https://github.com/FrancineHuang/jal-jgc-flight-planner-be#readme)。
