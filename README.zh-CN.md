@@ -1,6 +1,6 @@
 # JGC Flight Planner
 
-[English](README.md) | [日本語](README.ja.md)| **简体中文**
+[English](README.md) | [日本語](README.ja.md) | **简体中文**
 
 面向日航 JGC「修行僧」的飞行规划工具。
 
