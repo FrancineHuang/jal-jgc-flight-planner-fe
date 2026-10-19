@@ -1,5 +1,5 @@
-import { PlannerDashboard } from "@/components/dashboard/planner-dashboard";
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return <PlannerDashboard />;
+  redirect("/dashboard");
 }
