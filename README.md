@@ -1,64 +1,230 @@
-# JGC Flight Planner — Frontend
+# JGC Flight Planner
 
-Next.js 16 App Router, React 19, TypeScript and Tailwind CSS. A responsive dashboard and flight simulator with navy, white and a restrained dark-red accent (`#8f263b`). Independent prototype, not affiliated with Japan Airlines.
+**English** | [日本語](README.ja.md) | [简体中文](README.zh-CN.md)
 
-## Run locally
+A flight planning tool for JAL enthusiasts pursuing JGC — the frequent flyers known as 「修行僧」 (*shugyōsō*).
+
+Bring your current points, personal target, planned flights and cost per point into one dashboard, so every journey has a clearer direction.
+
+This repository contains the project's **frontend application**, built with Next.js. The interface defaults to Japanese and also supports English and Simplified Chinese.
+
+## Background
+
+This project is designed for travelers working toward JAL Global Club (JGC) who enjoy exploring routes and point efficiency. In this context, 「修行」 means planning flights around a frequent-flyer goal: considering where to go, how a trip contributes to that goal, and how much it will cost.
+
+JAL's [Life Status Program](https://www.jal.co.jp/jp/ja/jmb/lsp/) is a lifetime activity program that awards Life Status Points (LSP) for flights and eligible lifestyle services. This project focuses on **flight planning**, helping travelers answer a few practical questions:
+
+- How many LSP do I have, and how far am I from my personal target?
+- How many LSP might a planned one-way or round-trip itinerary earn?
+- What is the airfare cost per LSP, and how does it fit my budget?
+- Which policy version produced the estimate, and which segments still need eligibility confirmation?
+
+Starting with manual inputs and traceable estimates, the project aims to build a useful planning experience for the JGC journey. It is also a full-stack engineering portfolio project developed with AI assistance.
+
+> This is a prototype. All flight-point calculations are **unverified demonstration estimates**, not confirmed JAL entitlements. Linking to official information does not mean the project's calculation rules have been verified. LSP and annual FLY ON Points are different concepts and must not be treated interchangeably. This is an independent project, not affiliated with Japan Airlines.
+
+Official background: [JAL Life Status Program](https://www.jal.co.jp/jp/ja/jmb/lsp/) · [Star grade information](https://www.jal.co.jp/jp/ja/jmb/lsp/jgc/). Refer to JAL's latest published conditions for actual points, eligibility and benefits.
+
+## Current features
+
+| Feature | Description |
+| --- | --- |
+| LSP dashboard | Manually set your current LSP and personal target; view remaining points and progress |
+| Flight simulator | Enter airports, dates, total airfare and marketing carrier for one-way or round-trip flights |
+| Per-segment eligibility | Manually select eligible, ineligible or unknown; airports alone never determine eligibility |
+| Points and cost preview | Display the backend's estimated LSP, JPY per LSP and per-segment breakdown |
+| Policy transparency | Show policy ID, version, verification status and demo warnings |
+| Multiple languages | Japanese, English and Simplified Chinese, with a sidebar language menu and saved preference |
+| Responsive interface | Desktop and mobile layouts, with loading, empty, validation and retry states |
+
+Current points and targets use editable demo values that reset on refresh. The language preference is saved in the current browser. Switching languages preserves entered flights and estimate results.
+
+The prototype does not connect to JAL accounts, use a database, retrieve live airfare or verify eligibility automatically. It does not save itinerary history or search for optimal routes.
+
+### Demo itinerary
+
+Click 「羽田〜那覇のデモを試す」, then 「デモLSPを試算する」 in the default Japanese interface to request this example. In English, the corresponding buttons are **Try HND–OKA demo** and **Estimate demo LSP**.
+
+| Item | Demo value |
+| --- | --- |
+| Itinerary | HND → OKA → HND (Haneda–Naha round trip) |
+| Dates | 1–3 November 2026 |
+| Marketing carrier | JL |
+| Total airfare | ¥35,000 |
+| Eligibility | Both segments manually marked eligible |
+| Estimated points | 10 demo LSP |
+| Cost per point | ¥3,500/LSP |
+
+These results come from the backend's current **unverified demo policy**, not an official calculation example. Default balances, personal targets and the sample itinerary are configured in [`src/config/demo.ts`](src/config/demo.ts). A target shown in the interface is not a verified assessment of JGC eligibility.
+
+Unknown eligibility or a route outside the policy scope leaves the total pending while retaining known segment results. A zero-point estimate shows an unavailable cost per point.
+
+## Tech stack
+
+| Area | Technology |
+| --- | --- |
+| Frontend framework | Next.js 16 · App Router |
+| UI | React 19 · TypeScript |
+| Styling | Tailwind CSS 4 · CSS · navy, white and a restrained dark-red accent |
+| Localization | React Context · JSON language packs · browser-stored language preference |
+| API communication | Fetch API · response validation · timeout and cancellation handling |
+| Code checks | ESLint 9 · TypeScript |
+| Frontend tests | Node.js built-in test runner · TypeScript compiler |
+| Separate backend | Express 5 · TypeScript · Zod |
+
+The frontend and backend are maintained in separate repositories:
+
+- Frontend: [jal-jgc-flight-planner-fe](https://github.com/FrancineHuang/jal-jgc-flight-planner-fe)
+- Backend: [jal-jgc-flight-planner-be](https://github.com/FrancineHuang/jal-jgc-flight-planner-be)
+
+The frontend handles input, validation, interaction and presentation, calling `POST /api/v1/lsp/estimates`. The backend owns all flight LSP calculation logic; the frontend does not implement calculation formulas.
+
+## Local setup
+
+### 1. Prepare your environment and check out the code
+
+The following setup uses **Node.js 24, npm and Git**. Confirm that the commands are available:
 
 ```sh
+node --version
+npm --version
+git --version
+```
+
+For a fresh setup, clone both repositories into the same workspace:
+
+```sh
+mkdir jal-jgc-flight-planner
+cd jal-jgc-flight-planner
+
+git clone https://github.com/FrancineHuang/jal-jgc-flight-planner-fe.git
+git clone https://github.com/FrancineHuang/jal-jgc-flight-planner-be.git
+```
+
+If you already have the code, use your existing directories and skip cloning. Both terminals below start from this workspace directory.
+
+### 2. Start the backend
+
+In the first terminal:
+
+```sh
+cd jal-jgc-flight-planner-be
 npm ci
-cp .env.example .env.local
 npm run dev
 ```
 
-Open http://localhost:3000. Start the separate Express backend on http://localhost:4000 in its own repository (`npm run dev`). The backend must allow the frontend origin through CORS; its default is `http://localhost:3000`.
+The backend defaults to `http://localhost:4000` and allows frontend requests from `http://localhost:3000`. No additional backend environment variables are needed when using these defaults.
 
-`NEXT_PUBLIC_API_BASE_URL` is the backend origin, without `/api/v1`. It is embedded in the browser bundle; restart development or rebuild production after changing it. No secrets belong in this variable. The original template uses `next/font/google` for Geist, which requires access to Google Fonts during a fresh build.
+Check the service from another terminal:
 
-## Dashboard & simulator
-
-The default interface language is **Japanese**. Use the language menu in the sidebar to switch between **日本語**, **English** and **简体中文**. The selection is stored in this browser and synchronized between tabs. Changing language preserves form inputs, manual balance settings and estimate results; only point settings reset on refresh. If browser storage is blocked, language switching still works for the current page session.
-
-All interface strings, accessible labels, validation messages, known API warnings and error states use `src/i18n/messages/ja.json`, `en.json` and `zh.json`. Dates, page title, description and the HTML language follow the selection. Airport/carrier codes, policy IDs and versions stay as provided by the API; unexpected additional backend warnings are preserved verbatim. API errors carry a stable category so the UI can translate them without parsing English error text.
-
-- Edit current LSP and a personal target using **Edit LSP & target**. Defaults are configured in `src/config/demo.ts`. These are demo planning values, not account data or a verified JGC threshold. Changes last for the current page session and reset on refresh.
-- Choose a one-way or round-trip itinerary; enter IATA airport codes, dates, total JPY airfare and the marketing carrier (applied to each segment). Eligibility is manually configurable for each segment and defaults to **Unknown**.
-- **Try HND–OKA demo** loads the explicit example: 1–3 November 2026, ¥35,000, two manually eligible JL segments. Click **Estimate demo LSP** to request the result. With the backend's current unverified policy, it returns 10 demo LSP and ¥3,500 per LSP.
-- The UI displays the backend's total, cost per point, segment reasons, policy ID/version, verification status and warnings. No flight LSP calculation formulas are implemented in the frontend.
-- Unknown eligibility and unsupported routes show a pending total while preserving available segment estimates. Zero LSP shows an unavailable cost per LSP, never infinity. Free airfare remains valid. Costs are rounded to the nearest yen for display only.
-- Editing inputs clears the previous estimate. Loading, inline validation, API errors with retry, request timeout and empty results have dedicated states. Submissions are disabled while a request is pending.
-
-All flight estimates are **unverified demonstration data only**, never confirmed JAL entitlements. Life Status Points are separate from annual FLY ON Points. There is no authentication, database, persistence, airfare lookup or eligibility verification.
-
-## Structure
-
-```text
-src/app/                       App Router entry, metadata and responsive styles
-src/components/dashboard/      Dashboard shell, manual settings and progress
-src/components/simulator/      Flight form, request lifecycle and estimate display
-src/components/ui/             Shared SVG icons
-src/config/demo.ts             Configurable demo balance, target and itinerary
-src/i18n/                      Typed dictionaries, locale provider and browser preference
-src/lib/lsp/types.ts           Actual Express request/response contract
-src/lib/lsp/api.ts             POST client, response guard, errors, timeout/cancellation
-src/lib/lsp/validation.ts      Input validation and request serialization only
-src/lib/format.ts              Number, currency and timezone-stable date formatting
-tests/                         Client/validation tests and opt-in live API check
+```sh
+curl http://localhost:4000/api/health
 ```
 
-`POST /api/v1/lsp/estimates` accepts `{ totalAirfareJpy, segments }`. Each segment contains `origin`, `destination`, `departureDate`, `marketingCarrier`, and `eligibility` (`eligible | ineligible | unknown`). The response contains `totalAirfareJpy`, nullable `estimatedTotalLsp` and `jpyPerLsp`, `breakdown`, `policy`, and `warnings`. API errors use `error.message` and optional `error.issues` with field paths.
+Expected response:
 
-## Checks
+```json
+{ "status": "ok", "service": "JGC Flight Planner API" }
+```
+
+### 3. Configure and start the frontend
+
+In the second terminal, run the following. The `cp` command creates the initial configuration; skip it if `.env.local` already exists and keep your current settings.
+
+```sh
+cd jal-jgc-flight-planner-fe
+npm ci
+cp .env.example .env.local
+```
+
+Check the API URL in `.env.local`. The default is:
+
+```dotenv
+NEXT_PUBLIC_API_BASE_URL=http://localhost:4000
+```
+
+Start the frontend:
+
+```sh
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) to view the Japanese dashboard. Use the sidebar's 「表示言語」 menu to switch to English or Simplified Chinese.
+
+You can view the page with only the frontend running. Submitting a flight estimate requires the backend to be running as well.
+
+### Environment variables
+
+| Application | Variable | Default/example | Purpose |
+| --- | --- | --- | --- |
+| Frontend | `NEXT_PUBLIC_API_BASE_URL` | `http://localhost:4000` | Backend base URL, without `/api/v1` |
+| Backend | `PORT` | `4000` | Backend listening port |
+| Backend | `FRONTEND_ORIGIN` | `http://localhost:3000` | Allowed frontend origin for CORS |
+
+`NEXT_PUBLIC_API_BASE_URL` is included in browser code and must not contain secrets. After changing it, restart the frontend development server or rebuild for production. Use `.env.example` for committed configuration examples; `.env` and `.env.local` are ignored by Git.
+
+If the frontend uses another port, match the backend's `FRONTEND_ORIGIN` to the actual frontend URL. For example, if the frontend runs at `http://localhost:3001`, restart the backend with:
+
+```sh
+FRONTEND_ORIGIN=http://localhost:3001 npm run dev
+```
+
+Run this command in the backend directory using macOS, Linux or Git Bash. `localhost` and `127.0.0.1` are also different origins, so keep the addresses consistent.
+
+The project loads Geist through `next/font/google`; a fresh build needs access to Google Fonts.
+
+## Development checks and builds
+
+Run these commands in the frontend directory:
 
 ```sh
 npm run lint
 npm run typecheck
 npm test
 npm run build
+```
 
-# Optional: with the backend running on localhost:4000
+Frontend tests cover request formats, input boundaries, unknown and zero values, API errors, translation completeness, date formatting and language-preference storage.
+
+With the backend running, you can also run a live API integration check:
+
+```sh
 npm run test:integration
 ```
 
-Tests use the existing TypeScript compiler and Node test runner, with no added packages. Localization checks cover matching dictionary keys and interpolation parameters, translated validation, locale formatting, saved preferences and blocked browser storage. Integration checks exercise the frontend API client against the actual backend, including demo, unknown, zero, unsupported-route and validation-error responses.
+The integration script defaults to `http://localhost:4000`. To use another address, set a process environment variable:
 
-Keep the generated Next.js instructions in `AGENTS.md` intact. The frontend and backend repositories remain separate.
+```sh
+NEXT_PUBLIC_API_BASE_URL=http://localhost:4001 npm run test:integration
+```
+
+After a successful production build, start the production frontend with:
+
+```sh
+npm start
+```
+
+The backend must still run separately and allow the production frontend's origin.
+
+## Directory structure
+
+```text
+src/
+├── app/                       Page entry, metadata and global styles
+├── components/
+│   ├── dashboard/             Dashboard, point settings and language menu
+│   ├── simulator/             Flight form, request states and estimate results
+│   └── ui/                    Shared icons
+├── config/demo.ts             Demo balance, target and itinerary
+├── i18n/
+│   ├── messages/              ja.json, en.json and zh.json
+│   ├── dictionaries.ts        Message types and interpolation
+│   ├── locale-provider.tsx    Language context and page-language synchronization
+│   └── locale-store.ts        Browser language preference
+└── lib/
+    ├── lsp/                   API types, requests and input validation
+    └── format.ts              Number, JPY and date formatting
+tests/                         Unit tests and live API integration script
+```
+
+Read [`AGENTS.md`](AGENTS.md) before development and preserve its generated Next.js instructions. For the API contract and policy configuration, see the [backend README](https://github.com/FrancineHuang/jal-jgc-flight-planner-be#readme).
