@@ -1,0 +1,29 @@
+.locale-settings { position: relative; margin: 20px 0 24px; z-index: 4; }
+.locale-settings summary { display: flex; align-items: center; gap: 9px; min-height: 42px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; color: #646e7d; cursor: pointer; list-style: none; }
+.locale-settings summary::-webkit-details-marker { display: none; }
+.locale-settings summary:hover, .locale-settings[open] summary { background: #faf5f6; color: var(--accent); }
+.locale-label { font-size: 11px; }
+.locale-current { margin-left: auto; font-size: 9px; color: var(--accent); white-space: nowrap; }
+.locale-chevron { transform: rotate(90deg); }
+.locale-settings[open] .locale-chevron { transform: rotate(-90deg); }
+.locale-options { position: absolute; top: calc(100% + 7px); left: 0; width: 100%; min-width: 175px; border: 1px solid var(--border); background: white; border-radius: 7px; padding: 5px; margin: 0; box-shadow: 0 8px 28px #18294016; }
+.locale-options label { display: flex; align-items: center; gap: 9px; min-height: 40px; padding: 9px; cursor: pointer; border-radius: 4px; font-size: 12px; color: #536075; }
+.locale-options label:hover, .locale-options label:has(input:checked) { background: #f8eef0; color: var(--accent); }
+.locale-options input { width: 14px; height: 14px; accent-color: var(--accent); }
+.locale-options svg { margin-left: auto; }
+
+@media (max-width: 980px) {
+  .locale-settings { margin: 24px 0 0; }
+  .locale-settings summary { justify-content: center; padding: 12px; }
+  .locale-label, .locale-current, .locale-chevron { display: none; }
+  .locale-options { left: calc(100% + 9px); top: 0; }
+}
+
+@media (max-width: 640px) {
+  .sidebar-with-locale { flex-wrap: wrap; gap: 10px; }
+  .locale-settings { margin: 0 0 0 auto; }
+  .locale-settings summary { min-height: 34px; padding: 7px; gap: 6px; }
+  .locale-current { display: inline; font-size: 10px; }
+  .locale-settings summary > svg:first-child { height: 15px; width: 15px; }
+  .locale-options { top: calc(100% + 7px); right: 0; left: auto; }
+}
