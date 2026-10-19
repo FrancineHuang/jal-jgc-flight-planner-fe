@@ -1,5 +1,7 @@
 # JGC Flight Planner
 
+[English](README.md) | [日本語](README.ja.md)| **简体中文**
+
 面向日航 JGC「修行僧」的飞行规划工具。
 
 把当前积分、目标进度、计划行程与每点成本放在同一个画面，让下一次出发更有方向。
